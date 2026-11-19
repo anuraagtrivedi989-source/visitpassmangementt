@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.DS_Store
+coverage/
+*.log
+docs
+
+# Backup and log files
+*.backup
+*.log
+
+# Include project documentation
+!/docs/
+/docs/*.md
+!/docs/*.md

@@ -1,0 +1,39 @@
+{
+  "name": "visitpass-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "nodemailer": "^10.2.1",
+    "pdfkit": "^0.16.0",
+    "qrcode": "^1.5.4",
+    "twilio": "^5.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.5.0",
+    "jest": "^30.5.2",
+    "jest-fetch-mock": "^3.0.3",
+    "node-fetch": "^3.3.2",
+    "postcss": "^8.5.33",
+    "supertest": "^6.3.3"
+  },
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "seed:admin": "node src/seedAdmin.js",
+    "test": "npm run test:jest && npm run test:node",
+    "test:jest": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:node": "node --test test/deletePass.test.js test/notifications.test.js",
+    "lint": "eslint . --fix"
+  }
+}
