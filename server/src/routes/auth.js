@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { randomBytes } from 'node:crypto';
+import { createHash,randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import rateLimit from 'express-rate-limit';
+// import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import Admin from '../models/Admin.js';
 import Organization from '../models/Organization.js';
 import { requireAuth, allowRoles } from '../middleware/auth.js';
@@ -10,13 +11,45 @@ import { validate, schemas } from '../middleware/validation.js';
 
 const router = Router();
 
-const limiter = rateLimit({
+// Layer 1: Generous IP-based protection
+const loginIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: 300,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { message: 'Too many login attempts. Try again later.' },
+  message: {
+    message: 'Too many login requests from this network. Please try again later.',
+  },
 });
+
+// Layer 2: Individual account + IP protection
+const loginAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string'
+      ? req.body.email.trim().toLowerCase()
+      : 'unknown';
+
+    const ip = ipKeyGenerator(req.ip || 'unknown');
+
+    return createHash('sha256')
+      .update(`${email}|${ip}`)
+      .digest('hex');
+  },
+
+  // Successful requests do not consume the failed-attempt limit
+  skipSuccessfulRequests: true,
+
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+
+  message: {
+    message: 'Too many failed login attempts for this account from this network. Please try again after 15 minutes.',
+  },
+});
+
 
 const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -75,7 +108,9 @@ router.post('/register', registrationLimiter, validate(schemas.register), async 
 });
 
 // login route
-router.post('/login', limiter, validate(schemas.login), async (req, res, next) => {
+router.post('/login',  loginIpLimiter,
+  loginAccountLimiter,
+  validate(schemas.login), async (req, res, next) => {
   try {
     const { email, password, role: requestedRole } = req.body;
     const user = await Admin.findOne({ email }).select('+passwordHash');
